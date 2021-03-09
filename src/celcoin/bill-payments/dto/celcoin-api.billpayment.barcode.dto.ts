@@ -1,16 +1,7 @@
+import { IsString, IsNotEmpty, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString, MaxLength, MinLength } from 'class-validator';
 
-export class CelcoinApiBillPaymentAuthorizeDto {
-    
-    @IsString()
-    @MaxLength(50)
-    @ApiProperty({ description: 'Terminal identifier on client system' })
-    externalTerminal: string;
-
-    @IsNumber()
-    @ApiProperty({ description: 'Transaction identifier on the client system' })
-    externalNSU: number;
+export class BarCodeDto {
 
     @IsString()
     @IsNotEmpty()
@@ -29,6 +20,6 @@ export class CelcoinApiBillPaymentAuthorizeDto {
     @IsNotEmpty()
     @MaxLength(50)
     @ApiProperty({ description: "The barcode string line from the bloqueto" })
-    barcode: string;
+    barCode: string;
 
 }

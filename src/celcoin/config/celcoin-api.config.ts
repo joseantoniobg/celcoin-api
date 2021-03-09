@@ -17,7 +17,7 @@ export default registerAs('celcoinApi', () => {
         current_version,
         services_endpoints: {
             auth_token_url: setBaseUrl('/token'),
-            authorize_billpayment_url: setBaseUrl('/authorize'),
+            authorize_billpayment_url: setBaseUrl('/authorize', billpayment_base_url),
             perform_billpyment_url: setBaseUrl('', billpayment_base_url),
             confirm_billpayment_url: setBaseUrl('/{transactionId}/capture', billpayment_base_url),
             cancel_billpayment_url: setBaseUrl('/{transactionId}/void', billpayment_base_url),

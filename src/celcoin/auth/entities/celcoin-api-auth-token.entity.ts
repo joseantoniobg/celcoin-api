@@ -14,7 +14,7 @@ export class CelCoinApiAuthToken extends BaseEntity {
     @Column({ type: 'timestamp with time zone' })
     expire_date: Date;
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar', length: 10 })
     token_type: string;
     
 }
