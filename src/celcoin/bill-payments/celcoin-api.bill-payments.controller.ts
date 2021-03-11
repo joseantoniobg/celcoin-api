@@ -1,7 +1,6 @@
 import { Body, Controller, Post, UsePipes, ValidationPipe } from '@nestjs/common';
-import { CelcoinApiBillPaymentsService } from './celcoin-api.bill-payments.service';
+import { CelcoinApiBillPaymentsService } from './services/celcoin-api.bill-payments.service';
 import { CelcoinApiBillPaymentAuthorizeDto } from './dto/celcoin-api.billpayment.authorize.dto';
-import { CelCoinAuthDto } from '../auth/dto/celcoin.auth.dto';
 import { ApiResponse } from '@nestjs/swagger';
 import { PerformPaymentControllerDto } from './dto/celcoin-api.billpayment.perform-controller.dto';
 import { PaymentDestination } from './celcoin-api.bill-payments.destination.enum';
@@ -16,9 +15,8 @@ export class BillPaymentsController {
     @UsePipes(new ValidationPipe({ transform: true }))
     authorizePayment(
         @Body(ValidationPipe) celcoinApiBillPaymentAuthorizeDto: CelcoinApiBillPaymentAuthorizeDto,
-        @Body(ValidationPipe) celcoinAuthDto: CelCoinAuthDto,
         ) {
-            return this.billpaymentsService.getPaymentAuthorization(celcoinAuthDto, celcoinApiBillPaymentAuthorizeDto);
+            return this.billpaymentsService.getPaymentAuthorization(celcoinApiBillPaymentAuthorizeDto);
     }
 
     @Post('/perform')
@@ -26,19 +24,17 @@ export class BillPaymentsController {
     @UsePipes(new ValidationPipe({ transform: true }))
     performPayment(
         @Body(ValidationPipe) celcoinPaymentData: PerformPaymentControllerDto,
-        @Body(ValidationPipe) celcoinAuthDto: CelCoinAuthDto,
         ) {
-            return this.billpaymentsService.performPayment(celcoinAuthDto, celcoinPaymentData);
+            return this.billpaymentsService.performPayment(celcoinPaymentData);
     }
 
     @Post('/end')
     @ApiResponse({ status: 200, description: 'ends the payment itself by confirming or cancelling it' })
     @UsePipes(new ValidationPipe({ transform: true }))
     confirmPayment(
-        @Body(ValidationPipe) celcoinAuthDto: CelCoinAuthDto,
         @Body('id', ValidationPipe) id: number,
         @Body('paymentDestination', PaymentDestinationPipe) paymentDestination: PaymentDestination,
         ) {
-            return this.billpaymentsService.endPayment(celcoinAuthDto, id, paymentDestination);
+            return this.billpaymentsService.endPayment(id, paymentDestination);
     }
 }

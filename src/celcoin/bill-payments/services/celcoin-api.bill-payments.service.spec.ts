@@ -6,6 +6,7 @@ import { CelCoinAuthDto } from '../auth/dto/celcoin.auth.dto';
 import { CelcoinApiAuthService } from '../auth/celcoin-api.auth.service';
 import { CelcoinApiBillPaymentsRepository } from './celcoin-api.bill-payments.repository';
 import { CelcoinPayments } from './entities/celcoin-api.billpayments.entity';
+import { AxiosResponse } from 'axios';
 
 describe('BillPaymentsService', () => {
   let service: CelcoinApiBillPaymentsService;

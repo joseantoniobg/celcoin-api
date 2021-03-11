@@ -15,7 +15,7 @@ async function bootstrap() {
     //app.enableCors();
   }
 
-  const port = process.env.PORT || configs.port;
+  const port = process.env.API_PORT || configs.port;
   await app.listen(port);
   logger.log(`App started listening port ${port}`);
 }
