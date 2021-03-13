@@ -11,7 +11,8 @@ import { DbNotFoundException, CelCoinApiException } from '../../exceptions/excep
 import { IBillData } from '../interfaces/celcoin-api.bill-apyments.bill-data.interface';
 import { IBarCode } from '../interfaces/celcoin-api.bill-payments.barcode.interface';
 import { IPerformBillPayment } from '../interfaces/celcoin-api.bill-payments.perform.interface';
-import { getNumbersFromString, getDateNow } from '../../../helpers/helper.functions';
+import { getNumbersFromString, getDateNow, getInterfaceObject } from '../../../helpers/helper.functions';
+import { PerformPaymentResponse } from '../responses/celcoin-api.bill-payments.PerformPaymentResponse';
 
 @Injectable()
 export class CelcoinPerformPaymentService {
@@ -26,7 +27,7 @@ export class CelcoinPerformPaymentService {
         private readonly celcoinBillPaymentsStatus: CelcoinApiBillPaymentsStatusRepository,
         ){}
 
-    async performPayment (paymentData: PerformPaymentControllerDto, logger: Logger): Promise<any> {
+    async performPayment (paymentData: PerformPaymentControllerDto, logger: Logger): Promise<PerformPaymentResponse> {
         try{
 
             const urlEndPoint = this.celCoinApiConfiguration.services_endpoints.perform_billpyment_url;
@@ -95,9 +96,16 @@ export class CelcoinPerformPaymentService {
 
             payment = await this.celcoinApiBillPaymentsRepository.updatePayment(payment);
 
-            return payment;
+            let performPaymentResponse: PerformPaymentResponse = getInterfaceObject(payment, new PerformPaymentResponse());
+
+            return performPaymentResponse;
+
         } catch (error) {
-            throwError (error, 'Perform Payment - Unhanded Error', '020');   
+            if (error.response.error.exception) {
+                throw error;
+            } else {
+                throwError (error, 'Perform Payment - Unhanded Error', '020');
+            }       
         }
     }
     

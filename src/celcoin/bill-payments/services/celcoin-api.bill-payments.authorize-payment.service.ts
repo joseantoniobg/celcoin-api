@@ -5,9 +5,11 @@ import celcoinApiConfig from '../../config/celcoin-api.config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CelcoinApiBillPaymentsRepository } from '../celcoin-api.bill-payments.repository';
 import { CelcoinApiBillPaymentAuthorizeDto } from '../dto/celcoin-api.billpayment.authorize.dto';
-import { UnhandedException, CelCoinApiException } from '../../exceptions/exception';
-import { getCelcoinAuthData, savePaymentStatus } from '../../helpers/celcoin-api.helpers';
+import { CelCoinApiException } from '../../exceptions/exception';
+import { getCelcoinAuthData, savePaymentStatus, throwError } from '../../helpers/celcoin-api.helpers';
 import { CelcoinApiBillPaymentsStatusRepository } from '../celcoin-api.bill-payments-status.repository';
+import { getFormattedObject, getInterfaceObject } from '../../../helpers/helper.functions';
+import { AuthorizePaymentResponse } from '../responses/celcoin-api.bill-payments.AuthorizePaymentResponse';
 
 @Injectable()
 export class CelcoinAuthorizePaymentService {
@@ -23,7 +25,7 @@ export class CelcoinAuthorizePaymentService {
         ){}
 
     async getPaymentAuthorization(celcoinApiBillPaymentAuthorizeDto: CelcoinApiBillPaymentAuthorizeDto, 
-                                  logger: Logger): Promise<any> {
+                                  logger: Logger): Promise<AuthorizePaymentResponse> {
         try {
 
             const urlEndPoint = this.celCoinApiConfiguration.services_endpoints.authorize_billpayment_url;
@@ -62,15 +64,17 @@ export class CelcoinAuthorizePaymentService {
                                        this.celcoinBillPaymentsStatus);
 
             newPayment = await this.celcoinApiBillPaymentsRepository.updatePayment(newPayment);
-            
-            return newPayment;
 
+            let authorizeResponse: AuthorizePaymentResponse = getInterfaceObject(newPayment, new AuthorizePaymentResponse());
+
+            return authorizeResponse;
+          
         } catch (error) {
-            if (!error.response.error.exception){
-                throw new UnhandedException('Authorize Payment - Unhanded Error', '010', JSON.stringify(error));
-            } else {
+            if (error.response.error.exception) {
                 throw error;
-            }         
+            } else {
+                throwError (error, 'Authorize Payment - Unhanded Error', '010'); 
+            }  
         }
     }
 }

@@ -8,7 +8,8 @@ import { PaymentDestination } from '../celcoin-api.bill-payments.destination.enu
 import { ConfigType } from '@nestjs/config';
 import { getCelcoinAuthData, savePaymentStatus, throwError } from '../../helpers/celcoin-api.helpers';
 import { DbNotFoundException, CelCoinApiException } from '../../exceptions/exception';
-import { getDateNow } from '../../../helpers/helper.functions';
+import { getDateNow, getInterfaceObject } from '../../../helpers/helper.functions';
+import { EndPaymentResponse } from '../responses/celcoin-api.bill-payments.EndPaymentResponse';
 
 @Injectable()
 export class CelcoinEndPaymentService {
@@ -23,7 +24,7 @@ export class CelcoinEndPaymentService {
         private readonly celcoinBillPaymentsStatus: CelcoinApiBillPaymentsStatusRepository,
         ){}
 
-    async endPayment(id: number, paymentDestination:  PaymentDestination, logger: Logger): Promise<any> {
+    async endPayment(id: number, paymentDestination:  PaymentDestination, logger: Logger): Promise<EndPaymentResponse> {
         
         try {
 
@@ -72,16 +73,16 @@ export class CelcoinEndPaymentService {
 
             this.celcoinApiBillPaymentsRepository.updatePayment(payment);
 
-            const status = {
-                errorCode: response.data.errorCode,
-                message: response.data.message,
-                status: response.data.status,
-            };
+            let endPaymentResponse: EndPaymentResponse = getInterfaceObject(response.data, new EndPaymentResponse());
 
-            return status;
+            return endPaymentResponse;
 
         } catch (error) {
-            throwError (error, 'End Payment - Unhanded Error', '030');   
+            if (error.response.error.exception) {
+                throw error;
+            } else {
+                throwError (error, 'End Payment - Unhanded Error', '030');   
+            }
         }
 
     }
