@@ -5,22 +5,17 @@ import celcoinApiConfig from '../../config/celcoin-api.config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CelcoinApiBillPaymentsRepository } from '../celcoin-api.bill-payments.repository';
 import { CelcoinApiBillPaymentAuthorizeDto } from '../dto/celcoin-api.billpayment.authorize.dto';
-import { CelCoinApiException } from '../../exceptions/exception';
+import {
+  CelCoinApiException,
+  PaymentException,
+} from '../../exceptions/exception';
 import {
   getCelcoinAuthData,
-  savePaymentStatus,
   throwError,
 } from '../../helpers/celcoin-api.helpers';
 import { CelcoinApiBillPaymentsStatusRepository } from '../celcoin-api.bill-payments-status.repository';
-import {
-  getFormattedObject,
-  getInterfaceObject,
-} from '../../../helpers/helper.functions';
+import { getInterfaceObject } from '../../../helpers/helper.functions';
 import { AuthorizePaymentResponse } from '../responses/celcoin-api.bill-payments.AuthorizePaymentResponse';
-import {
-  CELCOINAPI_AUTOHRIZE_PAYMENT_ERROR,
-  CELCOINAPI_AUTHORIZE_PAYMENT_UNHANDED_ERROR,
-} from '../constants/error.constants';
 
 @Injectable()
 export class CelcoinAuthorizePaymentService {
@@ -49,14 +44,14 @@ export class CelcoinAuthorizePaymentService {
         celcoinAuthDto,
       );
 
-      var newPayment = await this.celcoinApiBillPaymentsRepository.saveNewPendingPayment(
+      let newPayment = await this.celcoinApiBillPaymentsRepository.saveNewPendingPayment(
         celcoinApiBillPaymentAuthorizeDto,
       );
       celcoinApiBillPaymentAuthorizeDto.externalNSU = newPayment.id;
 
       logger.debug(`Will call CelCoin API to authorize a new payment`);
 
-      var response = await this.httpService
+      const response = await this.httpService
         .post(urlEndPoint, celcoinApiBillPaymentAuthorizeDto, {
           headers: {
             'Content-Type': 'application/json',
@@ -65,19 +60,25 @@ export class CelcoinAuthorizePaymentService {
         })
         .toPromise()
         .catch(async (error) => {
-          if (error.response.data.errorCode) {
-            await savePaymentStatus(
+          logger.debug(`Error Response Data: ${JSON.stringify(error)}`);
+          if (error.response.data.errorCode !== undefined) {
+            logger.error(`Will save the error from CelCoin`);
+            await this.celcoinBillPaymentsStatus.saveNewStatus(
               newPayment,
               error.response.data.errorCode,
               error.response.data.message,
               error.response.data.status,
-              this.celcoinBillPaymentsStatus,
+            );
+
+            throw new PaymentException(
               'Authorize Payment',
+              '001',
+              JSON.stringify(error.response.data),
             );
           }
           throw new CelCoinApiException(
-            CELCOINAPI_AUTOHRIZE_PAYMENT_ERROR.performedAction,
-            CELCOINAPI_AUTOHRIZE_PAYMENT_ERROR.errorCode,
+            'Authorize Payment - Unhanded Celcoin API Error',
+            '001',
             JSON.stringify(error.response.data),
           );
         });
@@ -89,12 +90,11 @@ export class CelcoinAuthorizePaymentService {
         response.data,
       );
 
-      await savePaymentStatus(
+      await this.celcoinBillPaymentsStatus.saveNewStatus(
         newPayment,
         response.data.errorCode,
         response.data.message,
         response.data.status,
-        this.celcoinBillPaymentsStatus,
       );
 
       newPayment = await this.celcoinApiBillPaymentsRepository.updatePayment(
@@ -108,14 +108,11 @@ export class CelcoinAuthorizePaymentService {
 
       return authorizeResponse;
     } catch (error) {
-      if (error.response.error.exception) {
+      logger.error(`General Error: ${JSON.stringify(error)}`);
+      if (typeof error.response.error.exception !== undefined) {
         throw error;
       } else {
-        throwError(
-          error,
-          CELCOINAPI_AUTHORIZE_PAYMENT_UNHANDED_ERROR.performedAction,
-          CELCOINAPI_AUTHORIZE_PAYMENT_UNHANDED_ERROR.errorCode,
-        );
+        throwError(error, 'Authorize Payment - Unhanded Error', '010');
       }
     }
   }

@@ -14,7 +14,6 @@ import { CelcoinApiBillPaymentsRepository } from '../celcoin-api.bill-payments.r
 import { PerformPaymentControllerDto } from '../dto/celcoin-api.billpayment.perform-controller.dto';
 import {
   getCelcoinAuthData,
-  savePaymentStatus,
   throwError,
 } from '../../helpers/celcoin-api.helpers';
 import {
@@ -30,11 +29,7 @@ import {
   getInterfaceObject,
 } from '../../../helpers/helper.functions';
 import { PerformPaymentResponse } from '../responses/celcoin-api.bill-payments.PerformPaymentResponse';
-import { CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_PERFORM_PAYMENT } from '../constants/error.constants';
-import {
-  CELCOINAPI_PERFORM_PAYMENT_ERROR,
-  CELCOINAPI_PERFORM_PAYMENT_UNHANDED_ERROR,
-} from '../constants/error.constants';
+import { PaymentException } from '../../exceptions/exception';
 
 @Injectable()
 export class CelcoinPerformPaymentService {
@@ -68,16 +63,18 @@ export class CelcoinPerformPaymentService {
 
       if (!payment) {
         throw new DbNotFoundException(
-          CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_PERFORM_PAYMENT.performedAction,
-          CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_PERFORM_PAYMENT.errorCode,
-          CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_PERFORM_PAYMENT.errorDescription,
+          'Perform Payment',
+          '020',
+          'Payment id not found',
         );
       }
 
       payment.value = paymentData.value;
       payment.clientPayer = paymentData.cpfCnpj;
 
-      //const performPaymentData = new PerformBillPaymentDto();
+      if (!payment.paymentDate) {
+        payment.paymentDate = getDateNow();
+      }
 
       const billData = <IBillData>{
         value: payment.value,
@@ -115,19 +112,22 @@ export class CelcoinPerformPaymentService {
         })
         .toPromise()
         .catch(async (error) => {
-          if (error.response.data.errorCode) {
-            savePaymentStatus(
+          if (error.response.data.errorCode !== undefined) {
+            this.celcoinBillPaymentsStatus.saveNewStatus(
               payment,
               error.response.data.errorCode,
               error.response.data.message,
               error.response.data.status,
-              this.celcoinBillPaymentsStatus,
+            );
+            throw new PaymentException(
               `Perform Payment`,
+              '001',
+              JSON.stringify(error.response.data),
             );
           }
           throw new CelCoinApiException(
-            CELCOINAPI_PERFORM_PAYMENT_ERROR.performedAction,
-            CELCOINAPI_PERFORM_PAYMENT_ERROR.errorCode,
+            'Perform Payment - Unhanded Error',
+            '001',
             JSON.stringify(error.response.data),
           );
         });
@@ -140,12 +140,11 @@ export class CelcoinPerformPaymentService {
       payment.performTransactionId = response.data.transactionId;
       payment.performedAt = getDateNow();
 
-      savePaymentStatus(
+      this.celcoinBillPaymentsStatus.saveNewStatus(
         payment,
         response.data.errorCode,
         response.data.message,
         response.data.status,
-        this.celcoinBillPaymentsStatus,
       );
 
       payment = await this.celcoinApiBillPaymentsRepository.updatePayment(
@@ -159,14 +158,10 @@ export class CelcoinPerformPaymentService {
 
       return performPaymentResponse;
     } catch (error) {
-      if (error.response.error.exception) {
+      if (error.response.error.exception !== undefined) {
         throw error;
       } else {
-        throwError(
-          error,
-          CELCOINAPI_PERFORM_PAYMENT_UNHANDED_ERROR.performedAction,
-          CELCOINAPI_PERFORM_PAYMENT_UNHANDED_ERROR.errorCode,
-        );
+        throwError(error, 'Perform Payment - Unhanded Error', '020');
       }
     }
   }

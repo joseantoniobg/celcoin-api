@@ -8,28 +8,18 @@ import { PaymentDestination } from '../celcoin-api.bill-payments.destination.enu
 import { ConfigType } from '@nestjs/config';
 import {
   getCelcoinAuthData,
-  savePaymentStatus,
   throwError,
 } from '../../helpers/celcoin-api.helpers';
 import {
   DbNotFoundException,
   CelCoinApiException,
+  PaymentException,
 } from '../../exceptions/exception';
 import {
   getDateNow,
   getInterfaceObject,
 } from '../../../helpers/helper.functions';
 import { EndPaymentResponse } from '../responses/celcoin-api.bill-payments.EndPaymentResponse';
-import { CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CANCEL_PAYMENT } from '../constants/error.constants';
-import {
-  CELCOINAPI_CONFIRM_PAYMENT_UNHANDED_ERROR,
-  CELCOINAPI_CANCEL_PAYMENT_UNHANDED_ERROR,
-  CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CONFIRM_PAYMENT,
-} from '../constants/error.constants';
-import {
-  CELCOINAPI_CONFIRM_PAYMENT_ERROR,
-  CELCOINAPI_CANCEL_PAYMENT_ERROR,
-} from '../constants/error.constants';
 
 @Injectable()
 export class CelcoinEndPaymentService {
@@ -62,15 +52,9 @@ export class CelcoinEndPaymentService {
 
       if (!payment) {
         throw new DbNotFoundException(
-          paymentDestination === PaymentDestination.CONFIRM
-            ? CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CONFIRM_PAYMENT.performedAction
-            : CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CANCEL_PAYMENT.performedAction,
-          paymentDestination === PaymentDestination.CONFIRM
-            ? CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CONFIRM_PAYMENT.errorCode
-            : CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CANCEL_PAYMENT.errorCode,
-          paymentDestination === PaymentDestination.CONFIRM
-            ? CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CONFIRM_PAYMENT.errorDescription
-            : CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CANCEL_PAYMENT.errorDescription,
+          `${paymentDestination} Payment`,
+          '020',
+          'Payment id not found',
         );
       }
 
@@ -99,33 +83,32 @@ export class CelcoinEndPaymentService {
         )
         .toPromise()
         .catch(async (error) => {
-          if (error.response.data.errorCode) {
-            await savePaymentStatus(
+          if (error.response.data.errorCode !== undefined) {
+            await this.celcoinBillPaymentsStatus.saveNewStatus(
               payment,
               error.response.data.errorCode,
               error.response.data.message,
               error.response.data.status,
-              this.celcoinBillPaymentsStatus,
+            );
+
+            throw new PaymentException(
               `${paymentDestination} Payment`,
+              '001',
+              JSON.stringify(error.response.data),
             );
           }
           throw new CelCoinApiException(
-            paymentDestination === PaymentDestination.CONFIRM
-              ? CELCOINAPI_CONFIRM_PAYMENT_ERROR.performedAction
-              : CELCOINAPI_CANCEL_PAYMENT_ERROR.performedAction,
-            paymentDestination === PaymentDestination.CONFIRM
-              ? CELCOINAPI_CONFIRM_PAYMENT_ERROR.errorCode
-              : CELCOINAPI_CANCEL_PAYMENT_ERROR.errorCode,
+            `${paymentDestination} Payment - Unhanded Error`,
+            '001',
             JSON.stringify(error.response.data),
           );
         });
 
-      savePaymentStatus(
+      this.celcoinBillPaymentsStatus.saveNewStatus(
         payment,
         response.data.errorCode,
         response.data.message,
         response.data.status,
-        this.celcoinBillPaymentsStatus,
       );
 
       if (paymentDestination === PaymentDestination.CONFIRM) {
@@ -143,18 +126,10 @@ export class CelcoinEndPaymentService {
 
       return endPaymentResponse;
     } catch (error) {
-      if (error.response.error.exception) {
+      if (error.response.error.exception !== undefined) {
         throw error;
       } else {
-        throwError(
-          error,
-          paymentDestination === PaymentDestination.CONFIRM
-            ? CELCOINAPI_CONFIRM_PAYMENT_UNHANDED_ERROR.performedAction
-            : CELCOINAPI_CANCEL_PAYMENT_UNHANDED_ERROR.performedAction,
-          paymentDestination === PaymentDestination.CONFIRM
-            ? CELCOINAPI_CONFIRM_PAYMENT_UNHANDED_ERROR.errorCode
-            : CELCOINAPI_CANCEL_PAYMENT_UNHANDED_ERROR.errorCode,
-        );
+        throwError(error, 'End Payment - Unhanded Error', '030');
       }
     }
   }

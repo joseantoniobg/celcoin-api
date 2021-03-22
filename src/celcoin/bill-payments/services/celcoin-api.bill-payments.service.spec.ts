@@ -1,79 +1,90 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CelcoinPerformPaymentService } from './celcoin-api.bill-payments.perform-payment.service';
+import { CelcoinAuthorizePaymentService } from './celcoin-api.bill-payments.authorize-payment.service';
+import { CelcoinEndPaymentService } from './celcoin-api.bill-payments.end-payment.service';
 import { CelcoinApiBillPaymentsService } from './celcoin-api.bill-payments.service';
-import { HttpService, HttpModule } from '@nestjs/common';
-import { CelcoinApiBillPaymentAuthorizeDto } from './dto/celcoin-api.billpayment.authorize.dto';
-import { CelCoinAuthDto } from '../auth/dto/celcoin.auth.dto';
-import { CelcoinApiAuthService } from '../auth/celcoin-api.auth.service';
-import { CelcoinApiBillPaymentsRepository } from './celcoin-api.bill-payments.repository';
-import { CelcoinPayments } from './entities/celcoin-api.billpayments.entity';
-import { AxiosResponse } from 'axios';
 
-describe('BillPaymentsService', () => {
-  let service: CelcoinApiBillPaymentsService;
-  let httpService: HttpService;
-  let authService: CelcoinApiAuthService;
-  let paymentRepository: CelcoinApiBillPaymentsRepository;
+const mockAuthorizePaymentService = () => ({
+  getPaymentAuthorization: jest.fn(),
+});
 
-  const mockAuthService = () => ({
-    getAuthToken: jest.fn(),
-  });
+const mockPerformPaymentService = () => ({
+  performPayment: jest.fn(),
+});
 
-  const mockPaymentRepository = () => ({
-    saveNewPendingPayment: jest.fn(),
-  });
+const mockEndPaymentService = () => ({
+  endPayment: jest.fn(),
+});
 
-  beforeEach(async () => {
+describe('CelcoinBillPaymentsService', () => {
+  let service;
+  let authorizePaymentService;
+  let performPaymentService;
+  let endPaymentService;
+  describe('endpoint to unite all services relative to bill payment process', () => {
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          CelcoinApiBillPaymentsService,
+          {
+            provide: CelcoinAuthorizePaymentService,
+            useFactory: mockAuthorizePaymentService,
+          },
+          {
+            provide: CelcoinPerformPaymentService,
+            useFactory: mockPerformPaymentService,
+          },
+          {
+            provide: CelcoinEndPaymentService,
+            useFactory: mockEndPaymentService,
+          },
+        ],
+      }).compile();
 
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [HttpModule],
-      providers: [CelcoinApiBillPaymentsService, 
-                  { provide: CelcoinApiAuthService, useFactory: mockAuthService },
-                  {provide: CelcoinApiBillPaymentsRepository, useFactory: mockPaymentRepository },
-                ],
-    }).compile();
+      service = await module.get<CelcoinApiBillPaymentsService>(
+        CelcoinApiBillPaymentsService,
+      );
 
-    httpService = await module.get<HttpService>(HttpService);
-    service = await module.get<CelcoinApiBillPaymentsService>(CelcoinApiBillPaymentsService);
-    authService = await module.get<CelcoinApiAuthService>(CelcoinApiAuthService);
-    paymentRepository = await module.get<CelcoinApiBillPaymentsRepository>(CelcoinApiBillPaymentsRepository);
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('gets authorization for a payment to be processed', async () => {
-    const celcoinBillPayment = new CelcoinApiBillPaymentAuthorizeDto();
-    celcoinBillPayment.externalTerminal = 'Terminal', 
-    celcoinBillPayment.externalNSU = undefined;
-    celcoinBillPayment.barCode.digitable= 'test';
-    celcoinBillPayment.barCode.barCode = 'test';
-
-    const celcoinAuthData = new CelCoinAuthDto();
-    celcoinAuthData.client_id = 'id';
-    celcoinAuthData.client_secret = 'secret';
-
-    const mockcelcoinPayment = new CelcoinPayments();
-    mockcelcoinPayment.id = 1;
-
-    expect(authService.getAuthToken).not.toHaveBeenCalled();
-    expect(paymentRepository.saveNewPendingPayment).not.toHaveBeenCalled();
-    paymentRepository.saveNewPendingPayment.mockResolvedValue(mockcelcoinPayment);
-
-    const response: AxiosResponse<any> = {
-      data,
-      headers: {},
-      config: { url: 'http://localhost:3000/mockUrl' },
-      status: 200,
-      statusText: 'OK',
-    };
-
-    jest
-    .spyOn(httpService, 'post')
-    .mockImplementationOnce(() => of(response));
-    celCoinApiService.getAuthToken(celcoinAuthDto).then(res => {
-      expect(res).toEqual(data);
+      authorizePaymentService = await module.get<CelcoinAuthorizePaymentService>(
+        CelcoinAuthorizePaymentService,
+      );
+      performPaymentService = await module.get<CelcoinPerformPaymentService>(
+        CelcoinPerformPaymentService,
+      );
+      endPaymentService = await module.get<CelcoinEndPaymentService>(
+        CelcoinEndPaymentService,
+      );
     });
 
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('authorize a payment by calling it service', async () => {
+      const mockCelcoinApiBillPaymentAuthorizeDto = {};
+      expect(
+        authorizePaymentService.getPaymentAuthorization,
+      ).not.toHaveBeenCalled();
+      await service.getPaymentAuthorization(
+        mockCelcoinApiBillPaymentAuthorizeDto,
+      );
+      expect(
+        authorizePaymentService.getPaymentAuthorization,
+      ).toHaveBeenCalled();
+    });
+
+    it('perform a payment by calling it service', async () => {
+      const mockCelcoinApiBillPaymentPerformDto = {};
+      expect(performPaymentService.performPayment).not.toHaveBeenCalled();
+      await service.performPayment(mockCelcoinApiBillPaymentPerformDto);
+      expect(performPaymentService.performPayment).toHaveBeenCalled();
+    });
+
+    it('end a payment by calling it service', async () => {
+      const mockBody = { id: 1, paymentDestination: 'CONFIRM' };
+      expect(endPaymentService.endPayment).not.toHaveBeenCalled();
+      await service.endPayment(mockBody);
+      expect(endPaymentService.endPayment).toHaveBeenCalled();
+    });
   });
 });
