@@ -10,14 +10,26 @@ import { CelcoinApiBillPaymentsStatusRepository } from './celcoin-api.bill-payme
 import { CelcoinAuthorizePaymentService } from './services/celcoin-api.bill-payments.authorize-payment.service';
 import { CelcoinEndPaymentService } from './services/celcoin-api.bill-payments.end-payment.service';
 import { CelcoinPerformPaymentService } from './services/celcoin-api.bill-payments.perform-payment.service';
+import { CelcoinSchedulePaymentService } from './services/celcoin-api.bill-payments.schedule-payment.service';
 
 @Module({
-    imports: [ConfigModule.forFeature(celcoinApiConfig),
-              ConfigModule.forRoot(),
-              TypeOrmModule.forFeature([CelcoinApiBillPaymentsRepository, CelcoinApiBillPaymentsStatusRepository]),  
-              CelcoinApiAuthModule,
-              HttpModule],
-    controllers: [BillPaymentsController],
-    providers: [CelcoinApiBillPaymentsService, CelcoinPerformPaymentService, CelcoinAuthorizePaymentService, CelcoinEndPaymentService]
+  imports: [
+    ConfigModule.forFeature(celcoinApiConfig),
+    ConfigModule.forRoot(),
+    TypeOrmModule.forFeature([
+      CelcoinApiBillPaymentsRepository,
+      CelcoinApiBillPaymentsStatusRepository,
+    ]),
+    CelcoinApiAuthModule,
+    HttpModule,
+  ],
+  controllers: [BillPaymentsController],
+  providers: [
+    CelcoinApiBillPaymentsService,
+    CelcoinPerformPaymentService,
+    CelcoinAuthorizePaymentService,
+    CelcoinEndPaymentService,
+    CelcoinSchedulePaymentService,
+  ],
 })
 export class BillPaymentsModule {}

@@ -55,6 +55,11 @@ export const CELCOINAPI_CANCEL_PAYMENT_UNHANDED_ERROR = new ErrorDescriptions(
   'Cancel Payment - Unhanded Error',
 );
 
+export const CELCOINAPI_SCHEDULE_PAYMENT_UNHANDED_ERROR = new ErrorDescriptions(
+  '140',
+  'Schedule Payment - Unhanded Error',
+);
+
 /***** BD NOT FOUND ERRORS */
 const ID_NOT_FOUND_DESCRIPTION = 'Payment ID not found';
 
@@ -73,6 +78,12 @@ export const CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CONFIRM_PAYMENT = new ErrorDescr
 export const CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_CANCEL_PAYMENT = new ErrorDescriptions(
   '203',
   'Cancel Payment',
+  ID_NOT_FOUND_DESCRIPTION,
+);
+
+export const CELCOINAPI_DB_NOT_FOUND_PAYMENT_ID_SCHEDULE_PAYMENT = new ErrorDescriptions(
+  '203',
+  'Schedule Payment',
   ID_NOT_FOUND_DESCRIPTION,
 );
 
