@@ -7,6 +7,11 @@ import {
   getDateFromStringDDMMYYYY,
 } from '../../helpers/helper.functions';
 import { DbException } from '../exceptions/exception';
+import {
+  CELCOINAPI_DB_EXCEPTION_GET_PAYMENT_BY_ID,
+  CELCOINAPI_DB_EXCEPTION_SAVE_PAYMENT,
+  CELCOINAPI_DB_EXCEPTION_UPDATE_PAYMENT,
+} from './constants/error.constants';
 
 @EntityRepository(CelcoinPayments)
 export class CelcoinApiBillPaymentsRepository extends Repository<CelcoinPayments> {
@@ -28,7 +33,11 @@ export class CelcoinApiBillPaymentsRepository extends Repository<CelcoinPayments
       payment.digitable = digitable;
       return this.save(payment);
     } catch (error) {
-      throw new DbException('save a new payment', '001', JSON.stringify(error));
+      throw new DbException(
+        CELCOINAPI_DB_EXCEPTION_SAVE_PAYMENT.performedAction,
+        CELCOINAPI_DB_EXCEPTION_SAVE_PAYMENT.errorCode,
+        JSON.stringify(error),
+      );
     }
   }
 
@@ -92,8 +101,8 @@ export class CelcoinApiBillPaymentsRepository extends Repository<CelcoinPayments
       return celcoinPayment.save();
     } catch (error) {
       throw new DbException(
-        'update a new payment',
-        '003',
+        CELCOINAPI_DB_EXCEPTION_UPDATE_PAYMENT.performedAction,
+        CELCOINAPI_DB_EXCEPTION_UPDATE_PAYMENT.errorCode,
         JSON.stringify(error),
       );
     }
@@ -104,8 +113,8 @@ export class CelcoinApiBillPaymentsRepository extends Repository<CelcoinPayments
       return this.findOne({ id });
     } catch (error) {
       throw new DbException(
-        'find a payment by its id',
-        '002',
+        CELCOINAPI_DB_EXCEPTION_GET_PAYMENT_BY_ID.performedAction,
+        CELCOINAPI_DB_EXCEPTION_GET_PAYMENT_BY_ID.errorCode,
         JSON.stringify(error),
       );
     }
